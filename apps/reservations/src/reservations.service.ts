@@ -9,15 +9,20 @@ import { ClientProxy } from '@nestjs/microservices';
 export class ReservationsService {
   constructor(
     private readonly reservationRepository: ReservationRepository,
-    @Inject(PAYMENTS_SERVICE) paymentsService: ClientProxy,
+    @Inject(PAYMENTS_SERVICE) private readonly paymentsService: ClientProxy,
   ) {}
 
-  async create(CreateReservationDto: CreateReservationDto, userId: string) {
-    return await this.reservationRepository.create({
-      ...CreateReservationDto,
-      timestamp: new Date(),
-      userId,
-    });
+  async create(createReservationDto: CreateReservationDto, userId: string) {
+    this.paymentsService
+      .send('create_charge', createReservationDto.charge)
+      .subscribe(async (response) => {
+        console.log({ response });
+        return await this.reservationRepository.create({
+          ...createReservationDto,
+          timestamp: new Date(),
+          userId,
+        });
+      });
   }
 
   async findAll() {
